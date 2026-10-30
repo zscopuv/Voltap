@@ -4,7 +4,13 @@ on:
   push:
     tags:
       - 'v*'
+
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing release tag to build (for example v1.0.0)
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -15,43 +21,101 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout source
+      # For manual runs, select the main branch in the Actions UI and enter
+      # the tag above. This ensures the updated workflow is used while the
+      # application source is checked out from the requested release tag.
+      - name: Checkout release source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.release_tag || github.ref }}
+          fetch-depth: 0
 
       - name: Set up .NET 8
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
 
-      - name: Restore dependencies
-        run: dotnet restore ./Voltap/Voltap.csproj
+      - name: Build all Windows architectures
+        shell: pwsh
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $runtimes = @('win-x64', 'win-arm64', 'win-x86')
 
-      - name: Publish self-contained Windows executable
-        run: >
-          dotnet publish ./Voltap/Voltap.csproj
-          --configuration Release
-          --runtime win-x64
-          --self-contained true
-          --output ./publish
-          -p:PublishSingleFile=true
-          -p:IncludeNativeLibrariesForSelfExtract=true
-          -p:EnableCompressionInSingleFile=true
-          -p:DebugType=None
-          -p:DebugSymbols=false
+          foreach ($rid in $runtimes) {
+            Write-Host "::group::Publishing $rid"
 
-      - name: Create ZIP package
+            $output = Join-Path 'publish' $rid
+            dotnet publish ./Voltap/Voltap.csproj `
+              --configuration Release `
+              --runtime $rid `
+              --self-contained true `
+              --output $output `
+              -p:PublishSingleFile=true `
+              -p:IncludeNativeLibrariesForSelfExtract=true `
+              -p:EnableCompressionInSingleFile=true `
+              -p:DebugType=None `
+              -p:DebugSymbols=false
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "dotnet publish failed for $rid (exit code $LASTEXITCODE)"
+            }
+
+            $exe = Join-Path $output 'Voltap.exe'
+            if (-not (Test-Path $exe)) {
+              throw "Expected executable was not generated: $exe"
+            }
+
+            $standaloneAsset = "Voltap-$rid.exe"
+            Copy-Item $exe $standaloneAsset -Force
+
+            $zipAsset = "Voltap-$($env:RELEASE_TAG)-$rid.zip"
+            Compress-Archive -Path $exe -DestinationPath $zipAsset -Force
+
+            Write-Host "Created $standaloneAsset"
+            Write-Host "Created $zipAsset"
+            Write-Host "::endgroup::"
+          }
+
+      - name: Verify release assets
         shell: pwsh
         run: |
-          Compress-Archive -Path ./publish/Voltap.exe -DestinationPath ./Voltap-${{ github.ref_name }}-win-x64.zip
+          $ErrorActionPreference = 'Stop'
+          $assets = @(
+            'Voltap-win-x64.exe',
+            'Voltap-win-arm64.exe',
+            'Voltap-win-x86.exe',
+            "Voltap-${{ inputs.release_tag || github.ref_name }}-win-x64.zip",
+            "Voltap-${{ inputs.release_tag || github.ref_name }}-win-arm64.zip",
+            "Voltap-${{ inputs.release_tag || github.ref_name }}-win-x86.zip"
+          )
+
+          foreach ($asset in $assets) {
+            if (-not (Test-Path $asset)) {
+              throw "Release asset is missing: $asset"
+            }
+
+            $size = (Get-Item $asset).Length
+            if ($size -le 0) {
+              throw "Release asset is empty: $asset"
+            }
+
+            Write-Host "$asset ($size bytes)"
+          }
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Voltap ${{ github.ref_name }}
+          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          name: Voltap ${{ inputs.release_tag || github.ref_name }}
           generate_release_notes: true
           fail_on_unmatched_files: true
           overwrite_files: true
           files: |
-            ./publish/Voltap.exe
-            ./Voltap-${{ github.ref_name }}-win-x64.zip
+            Voltap-win-x64.exe
+            Voltap-win-arm64.exe
+            Voltap-win-x86.exe
+            Voltap-${{ inputs.release_tag || github.ref_name }}-win-x64.zip
+            Voltap-${{ inputs.release_tag || github.ref_name }}-win-arm64.zip
+            Voltap-${{ inputs.release_tag || github.ref_name }}-win-x86.zip
