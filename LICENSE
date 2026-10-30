@@ -1,0 +1,44 @@
+Voltap Source-Available License (VSAL) v1.0
+
+Copyright (c) 2026 radecekq (zscopuv)
+All rights reserved.
+
+1. Grant of Permission
+
+You are permitted to:
+
+- View and study the source code of Voltap.
+- Download and compile Voltap for personal use.
+- Use compiled versions of Voltap for personal and non-commercial purposes.
+
+2. Restrictions
+
+Without prior written permission from the copyright holder, you may NOT:
+
+- Redistribute Voltap or any part of its source code.
+- Create, publish, distribute, or sell derivative works based on Voltap.
+- Copy portions of the source code into another project.
+- Use Voltap as a base, template, framework, or starting point for another software project.
+- Rebrand, rename, or claim ownership of Voltap or any modified version.
+- Remove or alter copyright notices.
+- Use Voltap or its source code for commercial purposes.
+
+3. Contributions
+
+Any voluntary contributions, suggestions, patches, or pull requests submitted to the project may be incorporated into Voltap and become part of the project under this license.
+
+4. Ownership
+
+Voltap and all associated source code, assets, branding, and documentation remain the exclusive property of the copyright holder.
+
+5. Disclaimer
+
+THIS SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+
+IN NO EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+6. Termination
+
+Any violation of this license automatically terminates all granted permissions immediately.
+
+By viewing, downloading, compiling, or using Voltap, you agree to the terms of this license.
